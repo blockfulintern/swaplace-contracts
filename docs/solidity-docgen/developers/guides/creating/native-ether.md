@@ -16,6 +16,13 @@ When dealing with native Ether in swaps, alongside ERC20, ERC721 and ERC1155 tok
 * **Assets**: An array detailing the assets being offered in the swap, including token addresses, IDs, and amounts.
 * **Asking**: An array specifying what assets are requested in exchange.
 
+{% hint style="info" %}
+**NOTE**
+
+* **Recipient = 0**: This designation identifies the recipient as the acceptor of the swap, meaning they are the party receiving the Ether.
+* **Recipient = 1**: Conversely, this indicates the swap creator or initiator, who is responsible for sending the Ether.
+{% endhint %}
+
 ## Step-by-Step Implementation
 
 ### 1.Define Swap Parameters
@@ -50,12 +57,18 @@ const valueToSend: BigNumber = ethers.utils.parseEther("0.5"); // Convert 0.5 Et
 
 Encode the allowed address, expiry timestamp, recipient type, and Ether value into a single uint256 value using `encodeConfig`.
 
+{% hint style="info" %}
+**NOTE**&#x20;
+
+The Ether value must be divided by 1e12 because the minimum accepted must carry 6 decimals to fit correctly in a single storage slot
+{% endhint %}
+
 ```typescript
 const currentTimestamp = (await blocktimestamp()) + 1000000; // Future timestamp for expiry
 const config = await Swaplace.encodeConfig(zeroAddress, currentTimestamp, 0, valueToSend.div(1e12));
 ```
 
-### &#x20;4. Compose the Swap
+### 4. Compose the Swap
 
 Compose the swap structure by calling the function called `omposeSwap`, passing in the owner's address, encoded configuration, and arrays detailing the bid and ask components.
 
