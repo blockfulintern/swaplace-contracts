@@ -19,8 +19,8 @@ When dealing with native Ether in swaps, alongside ERC20, ERC721 and ERC1155 tok
 {% hint style="info" %}
 **NOTE**
 
-* **Recipient = 0**: This designation identifies the recipient as the acceptor of the swap, meaning they are the party receiving the Ether.
-* **Recipient = 1**: Conversely, this indicates the swap creator or initiator, who is responsible for sending the Ether.
+* If the recipient is set to '0', then the swap creator sends Ether to the one accepting the swap.
+* If the recipient is set to '1', then the acceptee send Ether to the one who created the swap.
 {% endhint %}
 
 ## Step-by-Step Implementation
