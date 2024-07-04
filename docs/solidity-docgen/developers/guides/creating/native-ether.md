@@ -1,73 +1,78 @@
 # Native Ether
 
-The `createSwap` function in the `Swaplace` contract allows users to create a new swap, including handling _**native Ether**_. This function ensures that the swap is created by the owner, increments the swap ID, stores the swap details, and emits a `SwapCreated` event.&#x20;
+This guide provides a step-by-step approach for developers looking to implement the swap mechanism for `native Ethers`within the Swaplace project.  The process involves defining the swap parameters, encoding configurations, and finally creating the swap.
 
 > Check the testsuit for this case [here](https://github.com/blockful-io/swaplace-contracts/blob/026d8cc3bc871936a2737e6e45ae1afb290dd05d/test/TestSwaplace.test.ts#L514)
 
+## Understanding Swap Parameters with Native Ethers
+
+When dealing with native Ether in swaps, alongside ERC20, ERC721 and ERC1155 tokens, the key parameters remain similar but with added attention to the Ether value being transferred:
+
+* **Owner**: The Ethereum address initiating the swap.
+* **Allowed**: The address authorized to accept the swap. A zero address implies anyone can accept.
+* **Expiry**: A future timestamp indicating when the swap offer expires.
+* **Recipient**: Specifies who receives the Ether involved in the swap. `0` denotes the acceptor, while values `1` through `255` refer to the swap owner.
+* **Value**: The amount of Ether involved in the swap, with a precision of up to 6 decimals.
+* **Assets**: An array detailing the assets being offered in the swap, including token addresses, IDs, and amounts.
+* **Asking**: An array specifying what assets are requested in exchange.
+
 ## Step-by-Step Implementation
 
-### Step 1: Verify the Owner
+### 1.Define Swap Parameters
 
-Ensure that the caller of the function is the owner of the swap. This is done by comparing the `swap.owner` with `msg.sender`.
+Define the parameters for your swap, including the addresses of the tokens involved, their amounts, and configuration details like expiry and recipient.
 
-```solidity
-if (swap.owner != msg.sender) revert InvalidAddress();
+```typescript
+//ERC20
+const bidingAddr = [MockERC721.address]; // Address of the token being offered
+const bidingAmountOrId = [1]; // ID of the ERC721 token being offered
+
+const askingAddr = [MockERC721.address]; // Address of the token requested
+const askingAmountOrId = [4]; // ID of the ERC721 token requested
+
+//ERC721
+const bidingAddr = [MockERC20.address]; // Address of the token being offered
+const bidingAmountOrId = [500]; // Amount of the ERC20 token being offered
+
+const askingAddr = [MockERC20.address]; // Address of the token requested
+const askingAmountOrId = [200]; // Amount of the ERC20 token requested
 ```
 
-### Step 2: Increment the Swap ID
+### 2. Calculate Ether Value
 
-Use inline assembly to increment the `_totalSwaps` counter. This ensures that each new swap gets a unique ID.
+Determine the amount of Ether to send with the swap. Use utility functions like `ethers.utils.parseEther` to convert Ether units to wei, the smallest unit of Ether.
 
-```solidity
-assembly {
-  sstore(_totalSwaps.slot, add(sload(_totalSwaps.slot), 1))
-}
+```typescript
+const valueToSend: BigNumber = ethers.utils.parseEther("0.5"); // Convert 0.5 Ether to wei
 ```
 
-### Step 3: Store the Swap Details
+### 3. Encode configuration
 
-Store the swap details in the `_swaps` mapping using the newly incremented swap ID.
+Encode the allowed address, expiry timestamp, recipient type, and Ether value into a single uint256 value using `encodeConfig`.
 
-```solidity
-uint256 swapId = _totalSwaps;
-_swaps[swapId] = swap;
+```typescript
+const currentTimestamp = (await blocktimestamp()) + 1000000; // Future timestamp for expiry
+const config = await Swaplace.encodeConfig(zeroAddress, currentTimestamp, 0, valueToSend.div(1e12));
 ```
 
-### Step 4: Decode the [encoded ](../preparing/)Swap Configuration
+### &#x20;4. Compose the Swap
 
-Decode the swap configuration to extract the allowed address, recipient, and value.
+Compose the swap structure by calling the function called `omposeSwap`, passing in the owner's address, encoded configuration, and arrays detailing the bid and ask components.
 
-```solidity
-(address allowed, , uint8 recipient, uint256 value) = decodeConfig(swap.config);
+```typescript
+const swap = await composeSwap(owner.address, config, bidingAddr, bidingAmountOrId, askingAddr, askingAmountOrId);
 ```
 
-### Step 5: Validate the Value
+### 5. Create the Swap with Ether
 
-Check if the value is greater than zero. If it is, ensure that the value matches the `msg.value` if the recipient is zero. If the recipient is not zero, ensure that `msg.value` is zero.
+Finally, create the swap by calling the `createSwap` function on the `Swaplace` contract, passing in the composed swap structure and the Ether value as part of the transaction options.
 
-```solidity
-if (value > 0) {
-  if (recipient == 0) {
-    if (value * 1e12 != msg.value) revert InvalidValue();
-  } else if (msg.value > 0) revert InvalidValue();
-}
-```
-
-### Step 6: Emit the `SwapCreated` Event
-
-Emit the `SwapCreated` event with the swap ID, owner, and allowed address.
-
-```solidity
-emit SwapCreated(swapId, msg.sender, allowed);
-```
-
-### Step 7: Return the Swap ID
-
-Finally, return the newly created swap ID.
-
-```solidity
-return swapId;
+```typescript
+await expect(
+  await Swaplace.connect(owner).createSwap(swap, { value: valueToSend }),
+)
+.to.emit(Swaplace, "SwapCreated")
+.withArgs(await Swaplace.totalSwaps(), owner.address, zeroAddress);
 ```
 
 > You can check the full code [here](https://github.com/blockful-io/swaplace-contracts/blob/026d8cc3bc871936a2737e6e45ae1afb290dd05d/contracts/Swaplace.sol)
-

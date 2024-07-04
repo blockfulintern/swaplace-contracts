@@ -1,4 +1,4 @@
-# ✦ Community & Links
+# Community & Links
 
 [**Website**](https://swaplace.xyz/)
 
@@ -8,4 +8,4 @@
 
 [**Discord**](https://discord.gg/8D5MYSNuXt)
 
-[**GitHub**](https://github.com/blockful-io/swaplace-contracts/projects?query=is%3Aopen)
+[**GitHub**](https://github.com/blockful-io/swaplace-contracts)

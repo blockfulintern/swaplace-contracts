@@ -46,7 +46,7 @@ Build a swap struct to use in the {Swaplace-createSwap} function.
 
 Requirements:
 
-* `expiry` cannot be in the past.\_
+* `expiry` cannot be in the past.
 
 #### Parameters
 
